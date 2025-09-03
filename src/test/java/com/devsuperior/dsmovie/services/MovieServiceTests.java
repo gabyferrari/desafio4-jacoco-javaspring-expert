@@ -3,6 +3,7 @@ package com.devsuperior.dsmovie.services;
 import static org.mockito.ArgumentMatchers.any;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,6 +21,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import com.devsuperior.dsmovie.dto.MovieDTO;
 import com.devsuperior.dsmovie.entities.MovieEntity;
 import com.devsuperior.dsmovie.repositories.MovieRepository;
+import com.devsuperior.dsmovie.services.exceptions.ResourceNotFoundException;
 import com.devsuperior.dsmovie.tests.MovieFactory;
 
 @ExtendWith(SpringExtension.class)
@@ -48,6 +50,9 @@ public class MovieServiceTests {
 		movieDto = MovieFactory.createMovieDTO();
 		
 		Mockito.when(movieRepository.searchByTitle(any(), (Pageable)any())).thenReturn(page);
+		
+		Mockito.when(movieRepository.findById(existingId)).thenReturn(Optional.of(movie));
+		Mockito.when(movieRepository.findById(nonExistId)).thenReturn(Optional.empty());
 	}
 	
 	@Test
@@ -63,10 +68,20 @@ public class MovieServiceTests {
 	
 	@Test
 	public void findByIdShouldReturnMovieDTOWhenIdExists() {
+		MovieDTO result = service.findById(existingId);
+		
+		Assertions.assertNotNull(result);
+		Assertions.assertEquals(result.getId(), existingId);
+		Assertions.assertEquals(result.getTitle(), movie.getTitle());
+		
 	}
 	
 	@Test
 	public void findByIdShouldThrowResourceNotFoundExceptionWhenIdDoesNotExist() {
+		
+		Assertions.assertThrows(ResourceNotFoundException.class, () -> {
+			service.findById(nonExistId);
+		});
 	}
 	
 	@Test
