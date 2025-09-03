@@ -12,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -21,6 +22,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import com.devsuperior.dsmovie.dto.MovieDTO;
 import com.devsuperior.dsmovie.entities.MovieEntity;
 import com.devsuperior.dsmovie.repositories.MovieRepository;
+import com.devsuperior.dsmovie.services.exceptions.DatabaseException;
 import com.devsuperior.dsmovie.services.exceptions.ResourceNotFoundException;
 import com.devsuperior.dsmovie.tests.MovieFactory;
 
@@ -60,6 +62,12 @@ public class MovieServiceTests {
 		
 		Mockito.when(movieRepository.getReferenceById(existingId)).thenReturn(movie);
 		Mockito.when(movieRepository.getReferenceById(nonExistId)).thenThrow(EntityNotFoundException.class);
+		
+		Mockito.when(movieRepository.existsById(existingId)).thenReturn(true);
+		Mockito.when(movieRepository.existsById(nonExistId)).thenReturn(false);
+		Mockito.when(movieRepository.existsById(dependentId)).thenReturn(true);
+		Mockito.doNothing().when(movieRepository).deleteById(existingId);
+		Mockito.doThrow(DataIntegrityViolationException.class).when(movieRepository).deleteById(dependentId);
 	}
 	
 	@Test
@@ -112,19 +120,32 @@ public class MovieServiceTests {
 	public void updateShouldThrowResourceNotFoundExceptionWhenIdDoesNotExist() {
 		
 		Assertions.assertThrows(ResourceNotFoundException.class, () -> {
+			@SuppressWarnings("unused")
 			MovieDTO result = service.update(nonExistId, movieDto);
 		});
 	}
 	
 	@Test
 	public void deleteShouldDoNothingWhenIdExists() {
+		
+		Assertions.assertDoesNotThrow(() -> {
+			service.delete(existingId);
+		});
 	}
 	
 	@Test
 	public void deleteShouldThrowResourceNotFoundExceptionWhenIdDoesNotExist() {
+		
+		Assertions.assertThrows(ResourceNotFoundException.class, () -> {
+			service.delete(nonExistId);
+		});
 	}
 	
 	@Test
 	public void deleteShouldThrowDatabaseExceptionWhenDependentId() {
+		
+		Assertions.assertThrows(DatabaseException.class, () -> {
+			service.delete(dependentId);
+		});
 	}
 }
