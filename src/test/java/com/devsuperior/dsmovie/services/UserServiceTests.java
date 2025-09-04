@@ -1,5 +1,6 @@
 package com.devsuperior.dsmovie.services;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -47,6 +49,9 @@ public class UserServiceTests {
 		
 		Mockito.when(repository.findByUsername(existingUsername)).thenReturn(Optional.of(user));
 		Mockito.when(repository.findByUsername(nonExistingUsername)).thenReturn(Optional.empty());
+		
+		Mockito.when(repository.searchUserAndRolesByUsername(existingUsername)).thenReturn(userDetails);
+		Mockito.when(repository.searchUserAndRolesByUsername(nonExistingUsername)).thenReturn(new ArrayList<>());
 	}
 
 	@Test
@@ -70,9 +75,17 @@ public class UserServiceTests {
 
 	@Test
 	public void loadUserByUsernameShouldReturnUserDetailsWhenUserExists() {
+		UserDetails result = service.loadUserByUsername(existingUsername);
+		
+		Assertions.assertNotNull(result);
+		Assertions.assertEquals(result.getUsername(), existingUsername);
 	}
 
 	@Test
 	public void loadUserByUsernameShouldThrowUsernameNotFoundExceptionWhenUserDoesNotExists() {
+		
+		Assertions.assertThrows(UsernameNotFoundException.class, () -> {
+			service.loadUserByUsername(nonExistingUsername);
+		});
 	}
 }
